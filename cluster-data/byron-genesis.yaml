@@ -3,9 +3,9 @@ avvmDistr: {}
 blockVersionData:
   scriptVersion: 0
   slotDuration: '100'
-  maxBlockSize: '2000000'
-  maxHeaderSize: '2000000'
-  maxTxSize: '4096'
+  maxBlockSize: '20000000'
+  maxHeaderSize: '20000000'
+  maxTxSize: '40960'
   maxProposalSize: '700'
   mpcThd: '20000000000000'
   heavyDelThd: '300000000000'
