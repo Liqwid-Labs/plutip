@@ -173,6 +173,7 @@ library
     Test.Plutip.Tools.ChainIndex
     Test.Plutip.Tools.DebugCli
     Test.Plutip.Tools.Format
+    Test.Plutip.Tools.Cluster
 
   other-modules:   Paths_plutip
 

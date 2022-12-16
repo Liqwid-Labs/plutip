@@ -13,7 +13,7 @@ import Cardano.Api (AddressAny, PaymentKey, SigningKey, VerificationKey)
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
-import Cardano.Wallet.Shelley.Launch.Cluster (
+import Test.Plutip.Internal.Cluster (
   sendFaucetFundsTo,
  )
 import Control.Arrow (ArrowChoice (left))
@@ -132,10 +132,11 @@ cardanoMainnetAddress (BpiWallet _ vk _) =
 
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String
-mkMainnetAddress bw =
-  Text.unpack
-    . CAPI.serialiseAddress
-    $ cardanoMainnetAddress bw
+mkMainnetAddress =
+  showAddress . cardanoMainnetAddress
+
+showAddress :: AddressAny -> String
+showAddress = Text.unpack . CAPI.serialiseAddress
 
 ledgerPaymentPkh :: BpiWallet -> PaymentPubKeyHash
 ledgerPaymentPkh = PaymentPubKeyHash . walletPkh

@@ -21,10 +21,11 @@ import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet, cardanoMainnetAddress)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import Test.Plutip.LocalCluster (waitSeconds)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -85,7 +86,8 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
-        waitSeconds 2 -- wait for transactions to submit
+        liftIO $ putStrLn "Waiting for wallets to be funded..."
+        awaitFunds wallets 2
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
@@ -94,6 +96,15 @@ startClusterHandler
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
+
+      -- waits for the last wallet to be funded
+      awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
+      awaitFunds ws delay = do
+        env <- ask
+        let lastWallet = last ws
+        liftIO $ do
+          putStrLn $ "Waiting till all wallets will be funded..."
+          awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

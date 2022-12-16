@@ -18,6 +18,7 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
@@ -29,6 +30,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   mkMainnetAddress,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
@@ -92,8 +94,18 @@ withConfiguredCluster conf name testCases =
         traverse
           (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
           testCases
-      waitSeconds 2 -- wait for transactions to submit
+      let waitDelay = 1
+      awaitFunds wallets waitDelay
+      -- waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
+
+    -- awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
+    awaitFunds ws delay = do
+      env <- ask
+      let lastWallet = NE.last $ last ws
+      liftIO $ do
+        putStrLn "Waiting till all wallets will be funded to start tests..."
+        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]
