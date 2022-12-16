@@ -905,7 +905,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis = do
 
             , _maxBBSize = 239857
             , _maxBHSize = 217569
-            , _maxTxSize = 40000
+            , _maxTxSize = 160000
 
             , _minPoolCost = Ledger.Coin 0
 
