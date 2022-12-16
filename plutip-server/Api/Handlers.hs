@@ -5,7 +5,7 @@ module Api.Handlers (
 
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
