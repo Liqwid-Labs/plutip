@@ -269,6 +269,9 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
+import Data.Default (def)
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig, ecSlotLength, ecEpochSize)
+
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
 -- variable.
@@ -793,11 +796,12 @@ defaultPoolConfigs = zipWith (\i p -> p {index = i}) [1..]
   where
     millionAda = 1_000_000_000_000
 
+-- altered: `def :: ExtraConfig` added
 localClusterConfigFromEnv :: IO LocalClusterConfig
 localClusterConfigFromEnv = do
     era <- clusterEraFromEnv
     logConf <- logFileConfigFromEnv (Just $ clusterEraToString era)
-    pure $ LocalClusterConfig defaultPoolConfigs era logConf
+    pure $ LocalClusterConfig defaultPoolConfigs era logConf def
 
 data ClusterEra
     = ByronNoHardFork
@@ -850,6 +854,8 @@ data LocalClusterConfig = LocalClusterConfig
     , cfgLastHardFork :: ClusterEra
     -- ^ Which era to use.
     , cfgNodeLogging :: LogFileConfig
+    -- ^ Log severity for node.
+    , cfgExtraConfig :: ExtraConfig
     } deriving (Show)
 
 -- | Information about a launched node.
@@ -886,8 +892,9 @@ generateGenesis
     -> [(Address, Coin)]
     -> (ShelleyGenesis StandardShelley -> ShelleyGenesis StandardShelley)
        -- ^ For adding genesis pools and staking in Babbage and later.
+    -> ExtraConfig -- <- alterd by adding `ExtraConfig` to arguments
     -> IO GenesisFiles
-generateGenesis dir systemStart initialFunds addPoolsToGenesis = do
+generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
     Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
         >>= Aeson.encodeFile (dir </> "genesis.alonzo.json")
@@ -905,7 +912,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis = do
 
             , _maxBBSize = 239857
             , _maxBHSize = 217569
-            , _maxTxSize = 40000
+            , _maxTxSize = 80000
 
             , _minPoolCost = Ledger.Coin 0
 
@@ -914,7 +921,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis = do
             -- There are a few smaller features/fixes which are enabled based on
             -- the protocol version rather than just the era, so we need to
             -- set it to a realisitic value.
-            , _protocolVersion = Ledger.ProtVer 7 0
+            , _protocolVersion = Ledger.ProtVer 8 0
 
             -- Sensible pool & reward parameters:
             , _nOpt = 3
@@ -932,9 +939,9 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis = do
     let sg = addPoolsToGenesis $ ShelleyGenesis
             { sgSystemStart = systemStart'
             , sgActiveSlotsCoeff = unsafePositiveUnitInterval 0.5
-            , sgSlotLength = 0.2
+            , sgSlotLength = ecSlotLength extraConf
             , sgSecurityParam = 5
-            , sgEpochLength = 80
+            , sgEpochLength = ecEpochSize extraConf
             , sgUpdateQuorum = 1
             , sgNetworkMagic = 764824073
             , sgSlotsPerKESPeriod = 86400
@@ -1027,7 +1034,7 @@ withCluster tr dir LocalClusterConfig{..} initialFunds onClusterStart = bracketT
             systemStart
             (initialFunds <> faucetFunds)
             (if postAlonzo then addGenesisPools else federalizeNetwork)
-
+            cfgExtraConfig
 
         if postAlonzo
         then do

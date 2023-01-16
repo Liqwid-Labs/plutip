@@ -15,7 +15,7 @@ maxBlockExUnits:
   exUnitsMem: 50000000000000
   exUnitsSteps: 40000000000000000
 maxValueSize: 5000
-collateralPercentage: 150
+collateralPercentage: 0
 maxCollateralInputs: 3
 costModels:
   PlutusV1:
